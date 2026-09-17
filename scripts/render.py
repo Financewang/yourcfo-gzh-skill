@@ -98,6 +98,41 @@ def c_h2(num, t, T):
     )
 
 
+def c_h3(t, T):
+    return (
+        f'<section style="margin:26px 0 12px 0;padding-left:10px;'
+        f'border-left:3px solid {T["ACCENT"]};">'
+        f'<p style="margin:0;font-size:16px;font-weight:600;line-height:1.55;'
+        f'color:{T["PRIMARY"]};">{leaf(t)}</p></section>'
+    )
+
+
+def c_h4(t, T):
+    return (
+        f'<p style="margin:20px 0 10px 0;font-size:15px;font-weight:600;'
+        f'line-height:1.6;color:{T["PRIMARY"]};">{leaf(t)}</p>'
+    )
+
+
+def c_li(t, T, num=None):
+    mark = f"{num}." if num else "·"
+    return (
+        f'<section style="margin:0 0 10px 0;display:flex;align-items:flex-start;">'
+        f'<section style="flex:0 0 auto;margin-right:8px;">'
+        f'{leaf(mark, f"font-size:15px;color:{T['ACCENT']};font-weight:600;line-height:1.9;")}'
+        f'</section><section style="flex:1;">'
+        f'<p style="margin:0;font-size:16px;line-height:1.9;color:{BODY};">'
+        f'{inline(t, T)}</p></section></section>'
+    )
+
+
+def c_hr(T):
+    return (
+        f'<section style="margin:26px auto;height:1px;width:60px;'
+        f'background:{LINE};"></section>'
+    )
+
+
 def c_p(t, T):
     return (
         f'<p style="margin:0 0 18px 0;font-size:16px;line-height:1.9;color:{BODY};'
@@ -250,9 +285,40 @@ def render(md, T, layer, pub):
             i += 1
             continue
 
+        if ln.startswith("#### "):
+            out.append(c_h4(ln[5:].strip(), T))
+            i += 1
+            first_para_done = True
+            continue
+
+        if ln.startswith("### "):
+            out.append(c_h3(ln[4:].strip(), T))
+            i += 1
+            first_para_done = True
+            continue
+
         if ln.startswith("## "):
             hn += 1
             out.append(c_h2(f"{hn:02d}", ln[3:].strip(), T))
+            i += 1
+            first_para_done = True
+            continue
+
+        if re.match(r"^(-{3,}|\*{3,})$", ln.strip()):
+            out.append(c_hr(T))
+            i += 1
+            continue
+
+        m = re.match(r"^[-*]\s+(.+)$", ln)
+        if m:
+            out.append(c_li(m.group(1).strip(), T))
+            i += 1
+            first_para_done = True
+            continue
+
+        m = re.match(r"^(\d+)\.\s+(.+)$", ln)
+        if m and "|" not in ln:
+            out.append(c_li(m.group(2).strip(), T, m.group(1)))
             i += 1
             first_para_done = True
             continue
