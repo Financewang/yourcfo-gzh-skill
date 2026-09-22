@@ -2,3 +2,6 @@ venv/
 __pycache__/
 *.pyc
 *_预览.html
+drafts/*.md
+!drafts/示例稿.md
+drafts/*_排版_*.html
