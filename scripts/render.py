@@ -49,6 +49,16 @@ SUB = "#5A6472"
 LINE = "#E3E8EF"
 
 
+# 独立的 HTML 注释行 = 机器元数据（GEO 的 answer / prompts / updated，以及外部工具写的 deadline 提示）。
+# 它们只给审计脚本读，不是正文；不剔除会被当成普通段落渲染成可见文本。
+META_COMMENT = re.compile(r"^[ \t]*<!--.*?-->[ \t]*$", re.M)
+
+
+def strip_meta(md):
+    """剔除独立的 HTML 注释行，避免元数据被渲染进正文。"""
+    return META_COMMENT.sub("", md)
+
+
 def esc(s):
     return html.escape(s, quote=False)
 
@@ -266,6 +276,7 @@ def c_next(t, T):
 # ── 解析 ──────────────────────────────────────────────
 
 def render(md, T, layer, pub):
+    md = strip_meta(md)
     out = []
     lines = md.split("\n")
     i = 0

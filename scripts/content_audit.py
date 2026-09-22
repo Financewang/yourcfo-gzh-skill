@@ -70,6 +70,7 @@ CTA = re.compile(r"欢迎加入星球聊一聊")
 HALF_PUNCT = re.compile(r"[\u4e00-\u9fff][,;!?]")
 ASCII_QUOTE = re.compile(r'[\u4e00-\u9fff]["\']|["\'][\u4e00-\u9fff]')
 CODE_BLOCK = re.compile(r"```.*?```|`[^`]+`", re.S)
+MARKER_BANG = re.compile(r"!!")
 
 
 class Report:
@@ -181,7 +182,17 @@ def check_cta(text, layer, r):
         r.warn("CTA-03", "入口层文章出现星球 CTA，建议改为指向次日文章")
 
 
+def strip_markers(text):
+    """去掉 !!...!! 标记的定界符本身。
+
+    标记语法里的 !!对照!! / !!回指!! 会让「照!」「指!」被误判成中文后半角标点，
+    这是检查器自己的产物，不是正文问题。只去掉定界符，标记内容照常参与其他检查。
+    """
+    return MARKER_BANG.sub("  ", text)
+
+
 def check_punct(text, r):
+    text = strip_markers(text)
     for m in HALF_PUNCT.finditer(text):
         r.warn("PU-01", f"中文后半角标点：「{m.group(0)}」")
         break
