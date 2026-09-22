@@ -1,0 +1,39 @@
+# YourCFO 品牌口径
+# 凡是标 TODO 的，是我读不到或你没告诉我、需要你填的，不要让我猜。
+
+version: 1
+updated: 2026-09-22
+
+account:
+  name: YourCFO
+  type: 个人号
+  positioning: 跨境企业主的合规避坑指南
+  themes:
+    - 境外企业架构
+    - 境外账户监管
+  audience: 有境外架构 / 境外账户的企业主与跨境高净值人士
+
+signature:
+  line1: "TODO 文末落款第一句"
+  line2: "TODO 第二句（可选）"
+
+cta:
+  keywords:                         # 来自《日更账号完整规划 V2.0》的 CTA 体系
+    - 对账
+    - 工具包
+    - 架构
+  xingqiu: "TODO 知识星球的固定引导话术（content_audit.py 里现在匹配的是「欢迎加入星球聊一聊」，如果口径要改，两处一起改）"
+
+redlines:                           # 来自《YourCFO 账号体系打法 V3.0》第七部分
+  - 所有具体数字、案例、政策 citation 必须独立核实，无法核实一律排除或替换
+  - 案例分析只能基于检索到的案件事实，公示未披露的细节不得自行推断成文
+  - 条文适用必须与案件事实精确对应，写前先确认持股结构
+  - 不模仿对标账号的明星补税标题
+  - 不出现「换个主体」「拆成几个公司」「分散收入」等表述
+  - 正文不加粗、少用引号、无 AI 味反问和套话过渡
+  - 不做「喂料 / 投毒」式的 GEO：只做真实专业内容的结构化表达
+
+structure:
+  forbid_serial_numbering: true      # 禁止「第 X 关」「上/下篇」这类追更编号
+  layers: [入口层A, 转化层B, 沉淀层C]
+  weekly_ratio: [2, 2, 1]

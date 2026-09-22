@@ -1,17 +1,27 @@
 ---
 name: fiscal-gzh
-description: 跨境财税合规类公众号文章排版与内容审计工具。把 Markdown 文稿转换为可直接粘贴进微信公众号编辑器的 HTML，并对内容结构做确定性审计。区别于通用排版 skill：本 skill 把法条文号、截止日倒计时、金额对照、对号入座分类、来源等级、历史回指当作一等公民处理，并内置反 AI 体词表与素材核实校验。触发场景：(1) 用户提到"排版""公众号 HTML""转成公众号格式"且文章属于财税/法律/合规类；(2) 用户要求对已写好的合规类文稿做发布前审计；(3) 用户提到"倒计时校验""文号校验""AI 体检查"。不用于生活类、营销类、纯技术类文章排版（用通用 gzh skill）。
+description: 跨境财税合规类公众号文章排版、内容审计与 GEO 沉淀工具。把 Markdown 文稿转换为可直接粘贴进微信公众号编辑器的 HTML，对内容结构做确定性审计，并按 GEO（生成式引擎优化）规则做飞行前体检。区别于通用排版 skill：本 skill 把法条文号、截止日倒计时、金额对照、对号入座分类、来源等级、历史回指当作一等公民处理，内置反 AI 体词表与素材核实校验；同时把「这篇绑定哪条问句、AI 能不能引用到它」纳入流程。触发场景：(1) 用户提到"排版""公众号 HTML""转成公众号格式"且文章属于财税/法律/合规类；(2) 用户要求对已写好的合规类文稿做发布前审计；(3) 用户提到"倒计时校验""文号校验""AI 体检查"；(4) 用户提到"GEO""AI 推荐""被引用""推荐词""问句库"。不用于生活类、营销类、纯技术类文章排版（用通用 gzh skill）。
 ---
 
-# 跨境财税合规公众号排版 Skill
+# 跨境财税合规公众号排版与 GEO Skill
 
-把一篇合规类文稿转成公众号可粘贴的 HTML，同时做**内容结构审计**。
+把一篇合规类文稿转成公众号可粘贴的 HTML，同时做**内容结构审计**与 **GEO 体检**。
 
-和通用排版 skill 的根本区别：通用 skill 解决的是"好不好看"，本 skill 解决的是"能不能发"。合规类内容的返工点不在配色，在于——倒计时数字和发布日对不上、引了法条没写文号、具体金额没有来源、AI 体句式混进正文、CTA 出现两次。这些错误排版再漂亮也得撤回重发。
+和通用排版 skill 的根本区别：通用 skill 解决的是"好不好看"，本 skill 解决的是"能不能发"，以及"发出去之后 AI 找不找得到"。合规类内容的返工点不在配色，在于——倒计时数字和发布日对不上、引了法条没写文号、具体金额没有来源、AI 体句式混进正文、CTA 出现两次。而 GEO 的返工点是另一个方向：文章写完了，却没有任何一句能被 AI 直接摘走的话。
 
-核心资产是两份：`references/compliance-components.md`（合规专用组件库，本 skill 的独有部分）和两套主题库。**审计脚本 `scripts/content_audit.py` 是强制环节，不是可选项。**
+核心资产三份：`references/compliance-components.md`（合规专用组件库）、两套主题库、`references/geo-playbook.md`（GEO 写作规则）。**审计脚本 `scripts/content_audit.py` 与 `scripts/geo_audit.py` 是强制环节，不是可选项。**
+
+配套私有仓库 `YourCFO` 提供写作依据：`knowledge/baselines/`（不得倒退重讲的判断）、`geo/prompts.yaml`（问句与答案句）、`knowledge/cases/`（案例卡）、`published/`（已发清单，去重用）。
 
 ## 工作流
+
+### 0. 写前：查基线、绑问句（新增）
+
+动笔之前三件事，缺一件就不要开始写：
+
+1. 读私有仓库 `knowledge/baselines/`，确认这篇是在**推进**还是在**重复**。重复即废稿。
+2. 从 `geo/prompts.yaml` 选 1–3 条目标问句绑定本篇；没有合适的问句，先入库再写稿。
+3. 回答增量三问：相对基线新增了什么判断？建立在哪条已核实的新事实上？读者读完能做出什么此前做不出的判断？
 
 ### 1. 读稿，判定文章层级
 
@@ -36,9 +46,9 @@ description: 跨境财税合规类公众号文章排版与内容审计工具。�
 
 不做题材匹配，不做多主题选择。垂直账号要的是辨识度，不是多样性。同一个账号每天换风格，读者认不出来。
 
-### 3. 读组件库
+### 3. 读组件库与 GEO 规则
 
-Read `references/compliance-components.md` + 所选主题库。
+Read `references/compliance-components.md` + 所选主题库 + `references/geo-playbook.md`。
 
 **先查合规组件库**：法条、文号、截止日、金额对照、对号入座、回指、来源标注、更正声明——这七类必须用合规库的组件，主题库只提供颜色。主题库负责的是标题、正文、引言、CTA 这些通用件。
 
@@ -56,6 +66,10 @@ Read `references/compliance-components.md` + 所选主题库。
 | `## 标题` | 章节标题 | 主题库 |
 | `**加粗**` | 主色加粗 | 主题库 |
 | 结尾固定段 | 星球 CTA 卡 | 主题库 |
+| `<!-- geo:answer … -->` | 不渲染，只进审计 | GEO 机制 |
+| `<!-- geo:prompts Q004,Q008 -->` | 不渲染，只进审计 | GEO 机制 |
+| `<!-- geo:updated 2026-09-22 -->` | 不渲染，只进审计 | GEO 机制 |
+| `## 常见问题` + 问答对 | 普通章节，但 GEO 必需 | GEO 机制 |
 
 ### 5. 内容审计（强制，先于 HTML 校验）
 
@@ -73,7 +87,22 @@ Read `references/compliance-components.md` + 所选主题库。
 6. **半角标点**——中文语境内的半角标点和直引号。
 7. **法规名称核对**——内置易错名称表（如 837 号令的正式名称是《国务院关于对外投资的规定》），写错报 ERROR。
 
-### 6. 平台合规校验
+### 6. GEO 体检（强制，与内容审计并列）
+
+```bash
+<SKILL_ROOT>/scripts/geo_audit.py <稿件.md> --prompts <YourCFO>/geo/prompts.yaml
+```
+
+六项检查，详见 `references/geo-playbook.md`：
+
+1. **答案句**——有没有 `<!-- geo:answer … -->`，是否 ≤ 60 字，是否落在正文前 300 字内。答案句是整篇唯一必须被 AI 整句摘走的东西。
+2. **问句绑定**——`<!-- geo:prompts Q… -->` 有且 1–3 条；给了 `--prompts` 时校验 ID 在库中存在。
+3. **数据密度**——每 150 字至少一个可验证声明（数字、金额、日期、文号）。低于标准报 WARNING。
+4. **外部权威引用**——全文至少 3 处官方原文、答记者问或官方案例。
+5. **FAQ 收尾**——末尾有「常见问题」或「FAQ」章节且至少 2 组问答；FAQ 是最容易被 AI 提取的形态。
+6. **更新时效**——`<!-- geo:updated YYYY-MM-DD -->` 距今不超过 90 天，超期报 WARNING（未更新的内容失去引用的速度是正常的 3 倍）。
+
+### 7. 平台合规校验
 
 ```bash
 <SKILL_ROOT>/scripts/validate_gzh_html.py <生成的.html>
@@ -81,11 +110,18 @@ Read `references/compliance-components.md` + 所选主题库。
 
 ERROR 清零。检查禁用标签属性和 `<span leaf>` 包裹。
 
-### 7. 输出
+### 8. 输出与沉淀
 
 产物是纯 `<section>` 片段，不带文档外壳。文件名 `{原名}_排版_{主题}.html`，同时产出 `_预览.html`（带复制按钮）。
 
-交付时附三样：审计结论、校验结论、本篇判定的层级和理由。
+交付时附四样：内容审计结论、GEO 体检结论、本篇判定的层级和理由、本篇绑定的问句 ID。
+
+**发布后（Sediment）**：
+- 正文与后台数据 → Notion
+- 新判断 → 私有仓库 `knowledge/baselines/`
+- 新案例 → 私有仓库 `knowledge/cases/`
+- 问句状态更新为 `covered` → 私有仓库 `geo/prompts.yaml`
+- 被引用记录 → 私有仓库 `geo/citations-log/`（每月五平台体检后）
 
 ## 本 skill 的七个独有处理
 
@@ -110,6 +146,9 @@ ERROR 清零。检查禁用标签属性和 `<span leaf>` 包裹。
 **七、更正走独立组件**
 写错过的地方用 C7 更正声明块，样式上明确区别于正文，不藏在段落里。这是账号信誉的组成部分。
 
+**八、GEO 元数据走 HTML 注释**
+答案句、问句 ID、更新日期一律写成 HTML 注释，和 `<!-- deadline:… -->` 同一个机制：不影响渲染、不占视觉、机器可读。**不新增渲染组件**，所以 `render.py` 与 `validate_gzh_html.py` 不需要为此改动。
+
 ## 视觉层级（两套主题通用）
 
 | 层级 | 用途 | 频率 |
@@ -128,6 +167,10 @@ ERROR 清零。检查禁用标签属性和 `<span leaf>` 包裹。
 
 可用：`display:flex`（有限）、`linear-gradient`、`border-radius`、`box-shadow`、`<section>/<p>/<span>/<strong>/<img>`。
 
+## 分发（GEO 的现实约束）
+
+微信生态外部抓不到，但**腾讯元宝把公众号当绝对第一来源**。也就是说：只发公众号，等于只覆盖腾讯系；豆包、文心、DeepSeek、Kimi 需要站外载体。平台对应关系见 `config/geo.yaml`，优先级是先跑头条号与百家号。
+
 ## Gotchas
 
 - **倒计时不重算**——改日期发布是最常见的翻车方式，必跑审计脚本。
@@ -140,7 +183,11 @@ ERROR 清零。检查禁用标签属性和 `<span leaf>` 包裹。
 - **AI 体词混入**——排版阶段不改文字，但审计命中要退回作者改，不要自行改写原意。
 - **主题混用**——两套主题不共存于一篇。
 - **图片拉伸**——`max-width:100%;height:auto`，不用 `width:100%`。
+- **文章没有答案句就排版**——排版再漂亮，AI 也摘不出一句完整判断，GEO 等于零。先补答案句再排。
+- **答案句写成一句长句**——超过 60 字 AI 就不整句摘了，会掐头去尾，意思可能反。拆成两句，一句一个判断。
+- **绑定问句当装饰**——绑了却不写进正文，等于没绑。问句要体现在小标题或首段。
+- **为被引用而编判断**——喂料、投毒那一套正在被监管和平台清理。你的优势是真做过，不是技巧。
 
 ## 扩展
 
-新增合规组件写入 `references/compliance-components.md` 并在 `content_audit.py` 的 `COMPONENT_MARKERS` 登记；新增易错法规名写入脚本的 `REGULATION_NAMES` 表；新增 AI 体词条写入 `references/anti-ai-lexicon.md`。
+新增合规组件写入 `references/compliance-components.md` 并在 `content_audit.py` 的 `COMPONENT_MARKERS` 登记；新增易错法规名写入 `REGULATION_NAMES` 表；新增 AI 体词条写入 `references/anti-ai-lexicon.md`；新增 GEO 写作规则写入 `references/geo-playbook.md` 与 `config/geo.yaml`，需要机器校验的加进 `geo_audit.py` 的检查函数并在本文件第 6 节登记检查码。

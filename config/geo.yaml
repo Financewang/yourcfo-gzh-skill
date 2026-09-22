@@ -1,0 +1,60 @@
+# YourCFO GEO 配置
+# 平台机制与分发优先级集中在这里，scripts/geo_audit.py 读它做体检。
+
+version: 1
+updated: 2026-09-22
+
+platforms:
+  yuanbao:                          # 腾讯元宝 / 微信搜一搜
+    primary_source: 微信公众号
+    note: 公众号是绝对第一来源，占比远超其他渠道；微信搜一搜继承同一优势
+    action: 公众号为主阵地，标题与首段直接按问句写
+  doubao:                           # 豆包
+    primary_source: 抖音 / 今日头条
+    action: 核心判断做成 60 秒口播 + 头条号图文
+  wenxin:                           # 百度文心 / 百度 AI 搜索
+    primary_source: 百家号
+    action: 同步发百家号
+  deepseek:
+    primary_source: 百度百科 / 网易号 / 搜狐号 / 腾讯新闻
+    action: 需要可被抓取的落地页；过渡期用搜狐号、网易号
+  kimi:
+    primary_source: 搜狐号（知乎比重下降）
+    note: 偏好 3000 字以上长文
+    action: 星球深度文转发搜狐号
+
+distribution_priority:              # 先跑两个，一个对应豆包、一个对应文心
+  - 头条号
+  - 百家号
+# 待定：是否上独立站 / 落地页
+
+audit:                              # 供 geo_audit.py 使用
+  prompts_per_article: [1, 3]       # 每篇绑定的问句条数区间
+  answer_max_chars: 60              # 答案句上限
+  answer_within_chars: 300          # 答案句须落在这个字数之内
+  claim_every_words: 150            # 每 N 字至少一个可验证声明
+  min_external_citations: 3         # 外部权威引用下限
+  min_faq_pairs: 2                  # FAQ 至少几组问答
+  refresh_days: 90                  # 更新时效上限
+  cadence: monthly
+  ask_verbatim: true                # 体检时用口语原话提问，不用关键词
+  record: geo/citations-log/YYYY-MM.md   # 记录落在私有仓库
+
+citations:                          # 算作「外部权威引用」的标识，geo_audit.py 据此计数
+  - 财政部
+  - 税务总局
+  - 国务院
+  - 发改委
+  - 商务部
+  - 外汇局
+  - 海关总署
+  - 证监会
+  - 香港税务局
+  - 香港公司注册处
+  - 金管局
+  - 答记者问
+  - 官方案例
+  - 处罚决定书
+  - 公告
+  - [L1]
+  - [L2]
