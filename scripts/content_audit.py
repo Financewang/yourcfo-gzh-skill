@@ -66,6 +66,35 @@ DATE_IN_TEXT = re.compile(r"(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日")
 # ── CTA ──────────────────────────────────────────────
 CTA = re.compile(r"欢迎加入星球聊一聊")
 
+# ── 降权修复期（RECOVERY MODE） ──────────────────────────────
+# 背景：2026-08 三篇被判「恶意引流」，账号推荐降权。归因见私有仓
+# incidents/2026-08-恶意引流判定.md：二维码是底火，扳机是「规避路径型内容
+# + 站外付费社群指向」的组合。修复期内一切站外指向一律 ERROR。
+# 解除条件写在 RECOVERY_EXIT 里，由主理人确认后用 --no-recovery 关闭。
+RECOVERY_EXIT = (
+    "篇均阅读回到 150+，或出现「看一看/推荐」来源占比 > 20%，"
+    "且期间无新增违规记录"
+)
+
+# 任何站外指向：星球、二维码、加微信、留联系方式、站外链接
+OUTBOUND_PATTERNS = [
+    (re.compile(r"知识星球|星球"), "星球指向"),
+    (re.compile(r"二维码|扫码|扫一扫|长按识别|识别图中"), "二维码/扫码引导"),
+    (re.compile(r"加(?:我|微信|好友)|微信号|VX|vx|wechat", re.I), "加微信/联系方式"),
+    (re.compile(r"私信(?:我|领取)?|领取资料|进群|入群"), "私信/领取/进群引导"),
+    (re.compile(r"https?://(?!mp\.weixin\.qq\.com)"), "站外链接"),
+    (re.compile(r"转发给(?:需要的)?(?:朋友|人)|点(?:个)?在看|点赞支持|欢迎分享"), "诱导分享"),
+]
+
+# 规避路径型判定——本次事故的真正扳机。这类表述在修复期一律不许出现。
+EVASION_PATTERNS = [
+    (re.compile(r"会不会被(?:查到|发现|盯上|穿透)"), "「会不会被查到」型判定"),
+    (re.compile(r"(?:还)?能不能(?:走通|复制|做|操作)|还走得通吗|还能复制吗"), "「这条路还能不能走」型判定"),
+    (re.compile(r"查不到|不会被查|没有记录|不被发现"), "暗示可规避监管"),
+    (re.compile(r"规避(?:CRS|监管|交换|报送)"), "明示规避监管"),
+    (re.compile(r"合理避税|少交税|省税技巧"), "避税表述"),
+]
+
 # ── 标点 ──────────────────────────────────────────────
 HALF_PUNCT = re.compile(r"[\u4e00-\u9fff][,;!?]")
 ASCII_QUOTE = re.compile(r'[\u4e00-\u9fff]["\']|["\'][\u4e00-\u9fff]')
@@ -172,14 +201,40 @@ def check_ai_style(text, r):
             r.err("AI-01", f"命中 AI 体：{label} —— 「{m.group(0)[:24]}」")
 
 
-def check_cta(text, layer, r):
+def check_cta(text, layer, r, recovery=True):
+    """修复期内语义反转：有 CTA 才是错。
+
+    正常期（--no-recovery）：转化/沉淀层缺 CTA 报错，重复报错。
+    修复期（默认）：任何星球 CTA 都报错，缺 CTA 是正确状态。
+    """
     n = len(CTA.findall(text))
+    if recovery:
+        if n > 0:
+            r.err("CTA-00", f"降权修复期内出现星球 CTA {n} 次——修复期要求零导流。解除条件：{RECOVERY_EXIT}")
+        return
     if n == 0 and layer in ("转化", "沉淀"):
         r.err("CTA-01", f"{layer}层文章缺少星球 CTA")
     elif n > 1:
         r.err("CTA-02", f"星球 CTA 出现 {n} 次，应有且仅有一次")
     elif n >= 1 and layer == "入口":
         r.warn("CTA-03", "入口层文章出现星球 CTA，建议改为指向次日文章")
+
+
+def check_outbound(text, r):
+    """修复期：任何站外指向一律 ERROR。不分层级，不看次数。"""
+    for pat, label in OUTBOUND_PATTERNS:
+        m = pat.search(text)
+        if m:
+            r.err("OUT-01", f"降权修复期内命中站外指向：{label} —— 「{m.group(0)[:20]}」")
+
+
+def check_evasion(text, r):
+    """规避路径型表述——2026-08 判定的真正扳机，永久红线。"""
+    for pat, label in EVASION_PATTERNS:
+        m = pat.search(text)
+        if m:
+            r.err("EVA-01", f"命中规避路径型表述：{label} —— 「{m.group(0)[:20]}」。"
+                            f"改写为「规则是什么」而非「会不会被查到」")
 
 
 def strip_markers(text):
@@ -213,7 +268,10 @@ def main():
     ap.add_argument("path")
     ap.add_argument("--pubdate", help="发布日 YYYY-MM-DD")
     ap.add_argument("--layer", choices=["入口", "转化", "沉淀"], help="文章层级")
+    ap.add_argument("--no-recovery", action="store_true",
+                    help="关闭降权修复期模式（需主理人确认已满足解除条件）")
     a = ap.parse_args()
+    recovery = not a.no_recovery
 
     raw = open(a.path, encoding="utf-8").read()
     text = strip_code(raw)
@@ -221,19 +279,24 @@ def main():
 
     r = Report()
     print(f"\n审计 {a.path}")
-    print(f"发布日 {a.pubdate or '未指定'} · 层级 {a.layer or '未指定'}\n")
+    print(f"发布日 {a.pubdate or '未指定'} · 层级 {a.layer or '未指定'}"
+          f" · 模式 {'降权修复期（零导流）' if recovery else '正常'}\n")
 
     check_countdown(raw, pub, r)
+    check_evasion(text, r)
+    if recovery:
+        check_outbound(text, r)
     check_citations(text, r)
     check_regulation_names(text, r)
     check_amounts(text, r)
     check_ai_style(text, r)
     check_punct(text, r)
     if a.layer:
-        check_cta(text, a.layer, r)
+        check_cta(text, a.layer, r, recovery)
         check_backref(text, a.layer, r)
     else:
-        r.warn("LY-01", "未指定 --layer，跳过 CTA 与回指检查")
+        check_cta(text, None, r, recovery)
+        r.warn("LY-01", "未指定 --layer，跳过回指检查")
 
     sys.exit(r.dump())
 
